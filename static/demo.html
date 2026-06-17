@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Bot Detection Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .demo-area {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .interaction-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .interaction-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .tracking-area {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+            border: 3px dashed #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            color: #667eea;
+            cursor: crosshair;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tracking-area canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .tracking-area .instruction {
+            z-index: 10;
+            pointer-events: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .click-button {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s;
+        }
+        
+        .click-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .click-button:active {
+            transform: scale(0.95);
+        }
+        
+        .stats-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .stats-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .stat-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .result-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .result-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .prediction-display {
+            padding: 40px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-size: 2.5em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .prediction-bot {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .prediction-human {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: white;
+            box-shadow: 0 5px 20px rgba(81, 207, 102, 0.4);
+        }
+        
+        .prediction-waiting {
+            background: #f8f9fa;
+            color: #adb5bd;
+        }
+        
+        .confidence-meter {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #51cf66 0%, #ffd43b 50%, #ff6b6b 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .model-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .model-info p {
+            margin: 5px 0;
+            color: #495057;
+        }
+        
+        .model-info strong {
+            color: #667eea;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .control-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: white;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #868e96 0%, #495057 100%);
+            color: white;
+        }
+        
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .history-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-top: 20px;
+        }
+        
+        .history-panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+        
+        .history-item.bot {
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .history-item.human {
+            border-left: 4px solid #51cf66;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .analyzing {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Live Bot Detection Demo</h1>
+            <p>Three-Layer Router Architecture | Real-Time ML Detection</p>
+        </div>
+        
+        <div class="demo-area">
+            <!-- Left: Interaction Area -->
+            <div class="interaction-panel">
+                <h2>🖱️ Interaction Area</h2>
+                <div class="tracking-area" id="trackingArea">
+                    <canvas id="heatmapCanvas"></canvas>
+                    <div class="instruction">
+                        <strong>Move your mouse and click around</strong><br>
+                        Your behavior is being analyzed in real-time
+                    </div>
+                </div>
+                
+                <div class="button-grid">
+                    <button class="click-button" onclick="handleButtonClick(1)">Button 1</button>
+                    <button class="click-button" onclick="handleButtonClick(2)">Button 2</button>
+                    <button class="click-button" onclick="handleButtonClick(3)">Button 3</button>
+                    <button class="click-button" onclick="handleButtonClick(4)">Button 4</button>
+                    <button class="click-button" onclick="handleButtonClick(5)">Button 5</button>
+                    <button class="click-button" onclick="handleButtonClick(6)">Button 6</button>
+                    <button class="click-button" onclick="handleButtonClick(7)">Button 7</button>
+                    <button class="click-button" onclick="handleButtonClick(8)">Button 8</button>
+                </div>
+            </div>
+            
+            <!-- Right: Live Stats -->
+            <div class="stats-panel">
+                <h2>📊 Live Statistics</h2>
+                <div class="stat-item">
+                    <span class="stat-label">Mouse Movements</span>
+                    <span class="stat-value" id="statMovements">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Clicks</span>
+                    <span class="stat-value" id="statClicks">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Avg Speed</span>
+                    <span class="stat-value" id="statSpeed">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Distance</span>
+                    <span class="stat-value" id="statDistance">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Pauses</span>
+                    <span class="stat-value" id="statPauses">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Duration</span>
+                    <span class="stat-value" id="statDuration">0s</span>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="control-button btn-start" id="btnStart" onclick="startTracking()">
+                        ▶ Start
+                    </button>
+                    <button class="control-button btn-stop" id="btnStop" onclick="stopTracking()" disabled>
+                        ⏸ Stop
+                    </button>
+                    <button class="control-button btn-reset" onclick="resetTracking()">
+                        🔄 Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom: Results -->
+        <div class="result-panel">
+            <h2>🎯 Detection Result</h2>
+            
+            <div class="prediction-display prediction-waiting" id="predictionDisplay">
+                Waiting for data...
+            </div>
+            
+            <div class="confidence-meter">
+                <div class="confidence-fill" id="confidenceFill" style="width: 0%;">
+                    <span id="confidenceText">0%</span>
+                </div>
+            </div>
+            
+            <div class="model-info" id="modelInfo">
+                <p><strong>Selected Model:</strong> <span id="selectedModel">-</span></p>
+                <p><strong>Model Accuracy:</strong> <span id="modelAccuracy">-</span></p>
+                <p><strong>Confidence:</strong> <span id="confidenceLevel">-</span></p>
+                <p><strong>Request ID:</strong> <span id="requestId">-</span></p>
+            </div>
+        </div>
+        
+        <!-- History Panel -->
+        <div class="history-panel">
+            <h2>📜 Detection History</h2>
+            <div class="history-list" id="historyList">
+                <p style="color: #adb5bd; text-align: center;">No detections yet</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ====================================================================
+        // MOUSE TRACKING
+        // ====================================================================
+        
+        let tracking = false;
+        let movements = [];
+        let clicks = 0;
+        let startTime = null;
+        let lastPosition = null;
+        let totalDistance = 0;
+        let pauses = 0;
+        let lastMoveTime = Date.now();
+        
+        const trackingArea = document.getElementById('trackingArea');
+        const canvas = document.getElementById('heatmapCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = trackingArea.offsetWidth;
+            canvas.height = trackingArea.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Mouse move handler
+        trackingArea.addEventListener('mousemove', (e) => {
+            if (!tracking) return;
+            
+            const rect = trackingArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const timestamp = Date.now();
+            
+            // Calculate distance and speed
+            if (lastPosition) {
+                const dx = x - lastPosition.x;
+                const dy = y - lastPosition.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                const dt = (timestamp - lastPosition.timestamp) / 1000;
+                const speed = distance / dt;
+                
+                totalDistance += distance;
+                
+                movements.push({
+                    x, y, timestamp, distance, speed
+                });
+                
+                // Draw on heatmap
+                ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Check for pause
+                if (timestamp - lastMoveTime > 500) {
+                    pauses++;
+                }
+            }
+            
+            lastPosition = { x, y, timestamp };
+            lastMoveTime = timestamp;
+            
+            updateStats();
+        });
+        
+        // Click handler
+        trackingArea.addEventListener('click', (e) => {
+            if (!tracking) return;
+            
+            const rect = trackingArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            clicks++;
+            
+            // Visual feedback
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.5)';
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            updateStats();
+        });
+        
+        function handleButtonClick(buttonNum) {
+            if (!tracking) return;
+            clicks++;
+            updateStats();
+        }
+        
+        // ====================================================================
+        // TRACKING CONTROL
+        // ====================================================================
+        
+        function startTracking() {
+            tracking = true;
+            startTime = Date.now();
+            movements = [];
+            clicks = 0;
+            totalDistance = 0;
+            pauses = 0;
+            lastPosition = null;
+            
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('predictionDisplay').className = 'prediction-display analyzing';
+            document.getElementById('predictionDisplay').textContent = 'Analyzing...';
+            
+            // Send data every 3 seconds
+            trackingInterval = setInterval(sendData, 3000);
+        }
+        
+        function stopTracking() {
+            tracking = false;
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+            }
+        }
+        
+        function resetTracking() {
+            stopTracking();
+            movements = [];
+            clicks = 0;
+            totalDistance = 0;
+            pauses = 0;
+            startTime = null;
+            lastPosition = null;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            document.getElementById('predictionDisplay').className = 'prediction-display prediction-waiting';
+            document.getElementById('predictionDisplay').textContent = 'Waiting for data...';
+            document.getElementById('confidenceFill').style.width = '0%';
+            document.getElementById('confidenceText').textContent = '0%';
+            
+            updateStats();
+        }
+        
+        // ====================================================================
+        // STATISTICS UPDATE
+        // ====================================================================
+        
+        function updateStats() {
+            document.getElementById('statMovements').textContent = movements.length;
+            document.getElementById('statClicks').textContent = clicks;
+            
+            if (movements.length > 0) {
+                const speeds = movements.map(m => m.speed || 0);
+                const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+                document.getElementById('statSpeed').textContent = Math.round(avgSpeed);
+            }
+            
+            document.getElementById('statDistance').textContent = Math.round(totalDistance);
+            document.getElementById('statPauses').textContent = pauses;
+            
+            if (startTime) {
+                const duration = (Date.now() - startTime) / 1000;
+                document.getElementById('statDuration').textContent = duration.toFixed(1) + 's';
+            }
+        }
+        
+        // ====================================================================
+        // SEND DATA TO BACKEND
+        // ====================================================================
+        
+        let trackingInterval = null;
+        const API_URL = 'http://localhost:5000';
+        
+        function sendData() {
+            if (movements.length < 5) {
+                console.log('Not enough data yet');
+                return;
+            }
+            
+            // Calculate features
+            const speeds = movements.map(m => m.speed || 0).filter(s => s > 0);
+            const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+            const maxSpeed = Math.max(...speeds);
+            const duration = (Date.now() - startTime) / 1000;
+            
+            const data = {
+                avg_speed: avgSpeed,
+                max_speed: maxSpeed,
+                distance: totalDistance,
+                pauses: pauses,
+                clicks: clicks,
+                duration: duration,
+                movements: movements.length
+            };
+            
+            console.log('Sending data:', data);
+            console.log('  Avg Speed:', avgSpeed.toFixed(1), 'px/s');
+            console.log('  Distance:', totalDistance, 'px');
+            console.log('  Pauses:', pauses);
+            
+            fetch(`${API_URL}/detect_mouse`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Result:', result);
+                console.log('  Bot Probability:', (result.bot_probability * 100).toFixed(1) + '%');
+                console.log('  Threshold:', result.threshold || 0.65);
+                console.log('  Prediction:', result.prediction);
+                displayResult(result);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('predictionDisplay').className = 'prediction-display prediction-waiting';
+                document.getElementById('predictionDisplay').textContent = 'Error: Cannot connect to backend';
+            });
+        }
+        
+        // ====================================================================
+        // DISPLAY RESULT
+        // ====================================================================
+        
+        let detectionHistory = [];
+        
+        function displayResult(result) {
+            if (result.error) {
+                document.getElementById('predictionDisplay').className = 'prediction-display prediction-waiting';
+                document.getElementById('predictionDisplay').textContent = 'Error: ' + result.error;
+                return;
+            }
+            
+            // Update prediction display
+            const isBot = result.prediction === 'BOT';
+            const displayElem = document.getElementById('predictionDisplay');
+            
+            displayElem.className = isBot ? 
+                'prediction-display prediction-bot' : 
+                'prediction-display prediction-human';
+            
+            displayElem.textContent = isBot ? '🤖 BOT DETECTED' : '✅ HUMAN USER';
+            
+            // Update confidence meter
+            const confidence = result.bot_probability * 100;
+            document.getElementById('confidenceFill').style.width = confidence + '%';
+            document.getElementById('confidenceText').textContent = confidence.toFixed(1) + '%';
+            
+            // Update model info
+            document.getElementById('selectedModel').textContent = 
+                result.selected_model.toUpperCase() + ' Model';
+            document.getElementById('modelAccuracy').textContent = 
+                (result.model_accuracy * 100).toFixed(1) + '%';
+            document.getElementById('confidenceLevel').textContent = result.confidence;
+            document.getElementById('requestId').textContent = result.request_id;
+            
+            // Add to history
+            addToHistory(result);
+        }
+        
+        function addToHistory(result) {
+            detectionHistory.unshift(result);
+            if (detectionHistory.length > 10) {
+                detectionHistory.pop();
+            }
+            
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            detectionHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item ' + (item.prediction === 'BOT' ? 'bot' : 'human');
+                
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                const prob = (item.bot_probability * 100).toFixed(1) + '%';
+                
+                div.innerHTML = `
+                    <span>${time} - ${item.prediction}</span>
+                    <span>${prob}</span>
+                `;
+                
+                historyList.appendChild(div);
+            });
+        }
+        
+        // ====================================================================
+        // INITIALIZATION
+        // ====================================================================
+        
+        console.log('Frontend loaded. Ready to track mouse behavior!');
+        console.log('Backend API:', API_URL);
+    </script>
+</body>
+</html>
